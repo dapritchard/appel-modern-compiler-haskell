@@ -10,12 +10,15 @@ library
     hs-source-dirs:   src
     default-language: Haskell2010
 
-test-suite introduction-test
+test-suite test-introduction
     default-language: Haskell2010
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
-    main-is:          MyLibTest.hs
-    build-depends:    base ^>=4.16.3.0
+    main-is:          TestIntroduction.hs
+    build-depends:
+        base ^>=4.16.3.0
+      , tasty ^>= 1.4.2
+      , tasty-hunit ^>= 0.10.0
 
 -- TODO: Possible: workaround for "ld: warning: -undefined dynamic_lookup may not work with chained fixups" compilation warning
 -- https://github.com/bazelbuild/bazel/issues/16413#issuecomment-1270603343
