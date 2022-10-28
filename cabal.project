@@ -1,3 +1,4 @@
 with-compiler: ghc-9.2.4
 
 packages: 01-introduction
+packages: 02-lexical-analysis
