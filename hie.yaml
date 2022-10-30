@@ -1,0 +1,13 @@
+cradle:
+  cabal:
+    - path: "01-introduction/src"
+      component: "lib:introduction"
+
+    - path: "01-introduction/test"
+      component: "introduction:test:test-introduction"
+
+    - path: "02-lexical-analysis/src"
+      component: "lib:lexical-analysis"
+
+    - path: "02-lexical-analysis/test"
+      component: "lexical-analysis:test:test-lexical-analysis"
