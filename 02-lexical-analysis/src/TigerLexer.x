@@ -7,7 +7,7 @@
 {
 {-# OPTIONS -w -funbox-strict-fields #-}
 module TigerLexer ( main
-                  , scanner, lexer, Lexeme (..), LexemeClass (..), tokPosn
+                  , scanner, lexer, Lexeme (..), LexemeClass (..), tokPosn, AlexPosn(..)
                   , Pos, Alex, getCollNameToIdent, getParserCurrentToken, setCollNameToIdent
                   , getParserPos, setParserPos
                   , alexError, runAlex, runAlexTable, alexGetInput, showPosn
@@ -113,7 +113,7 @@ state:-
 {
 -- The token type
 
-data Lexeme = Lexeme AlexPosn LexemeClass (Maybe String)
+data Lexeme = Lexeme AlexPosn LexemeClass (Maybe String) deriving Eq
 
 instance Show Lexeme where
   show (Lexeme _ EOF _)   = "  Lexeme EOF"
