@@ -1,3 +1,6 @@
+{- Transcription of Program 1.5 on page 9: Representation of straight-line
+programs
+-}
 module Program01dot05 where
 
 type Id = String
