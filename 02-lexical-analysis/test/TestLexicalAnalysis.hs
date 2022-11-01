@@ -57,10 +57,6 @@ compareLex (Right _) (Left _) = testCase "Compare elements" (assertFailure "Righ
 compareLex (Right x) (Right y)
   | length x /= length y = testCase "Compare elements" (assertFailure "Differing lengths")
   | null x               = testGroup "Compare elements" []
-  | otherwise            = testGroup "Compare elements" $ snd (foldr cmp (length initx - 1, []) (zip initx inity))
+  | otherwise            = testGroup "Compare elements" $ map test (zip3 [0..] (init x) (init y))
  where
-  cmp :: (Lexeme, Lexeme) -> (Int, [TestTree]) -> (Int, [TestTree])
-  cmp vals acc = (fst acc - 1, test (fst acc) vals : snd acc)
-  test n (a, b) = testCase ("Elem" ++ show n) $ a @=? b
-  initx = init x
-  inity = init y
+  test (n, a, b) = testCase ("Elem" ++ show n) $ a @=? b
