@@ -1,4 +1,5 @@
 -- Copied from https://github.com/haskell/alex/blob/master/examples/tiger.x
+--
 -- An example of use of the monadUserState wrapper
 --
 -- Lexer for the Tiger language
@@ -7,14 +8,14 @@
 {
 {-# OPTIONS -w -funbox-strict-fields #-}
 module TigerLexer ( main
-                  , scanner, lexer, Lexeme (..), LexemeClass (..), tokPosn, AlexPosn(..)
+                  , lexer, Lexeme (..), LexemeClass (..), tokPosn
                   , Pos, Alex, getCollNameToIdent, getParserCurrentToken, setCollNameToIdent
                   , getParserPos, setParserPos
                   , alexError, runAlex, runAlexTable, alexGetInput, showPosn
                   , line_number
                   ) where
 
-import Prelude hiding ( GT, LT, EQ )
+import Prelude
 import System.Console.GetOpt ( OptDescr(..), ArgOrder(..), getOpt, usageInfo )
 import System.Environment ( getArgs, getProgName )
 import System.Directory ( doesFileExist )
@@ -65,11 +66,11 @@ state:-
 <0>             \|           { mkL OR }
 <0>             &            { mkL AND }
 <0>             \>\=         { mkL GE }
-<0>             \>           { mkL GT }
+<0>             \>           { mkL GT' }
 <0>             \<\=         { mkL LE }
-<0>             \<           { mkL LT }
+<0>             \<           { mkL LT' }
 <0>             \<\>         { mkL NEQ }
-<0>             \=           { mkL EQ }
+<0>             \=           { mkL EQ' }
 <0>             \/           { mkL DIVIDE }
 <0>             \*           { mkL TIMES }
 <0>             \-           { mkL MINUS }
@@ -113,7 +114,7 @@ state:-
 {
 -- The token type
 
-data Lexeme = Lexeme AlexPosn LexemeClass (Maybe String) deriving Eq
+data Lexeme = Lexeme AlexPosn LexemeClass (Maybe String)
 
 instance Show Lexeme where
   show (Lexeme _ EOF _)   = "  Lexeme EOF"
@@ -145,11 +146,11 @@ data LexemeClass =
       | MINUS
       | TIMES
       | DIVIDE
-      | EQ
+      | EQ'
       | NEQ
-      | LT
+      | LT'
       | LE
-      | GT
+      | GT'
       | GE
       | AND
       | OR
@@ -207,8 +208,8 @@ unembedComment input len =
        when (cd == 1) (alexSetStartCode state_initial)
        skip input len
 
-enterNewString _     _   =
-    do setLexerStringState True
+enterNewString (p, _, _, _) _ =
+    do setLexerStringState (Just p)
        setLexerStringValue ""
        alexMonadScan
 
@@ -248,10 +249,16 @@ addControlToString i@(_, _, _, input) len = addCharToString c' i len
             then chr (v - 64)
             else error "Invalid call to 'addControlToString'"
 
-leaveString (p, _, _, input) len =
+leaveString _ _ =
     do s <- getLexerStringValue
-       setLexerStringState False
-       return (Lexeme p (STRING (reverse s)) (Just (take len input)))
+       mp <- getLexerStringState  -- position where string literal started
+       setLexerStringState Nothing
+       return (Lexeme (fromJust mp) (STRING (reverse s)) Nothing)
+         -- Andreas Abel, 2023-04-14, https://github.com/haskell/alex/issues/180 :
+         -- We return Nothing as parsed input because we did not keep track
+         -- of all the characters we processed for lexing the string literal.
+         -- Future work:
+         -- Extend the lexer state with info that lets us reconstruct the lexed input here.
 
 getInteger (p, _, _, input) len = if (length r == 1)
                                   then return (Lexeme p (INT (fst (head r))) (Just s))
@@ -272,7 +279,8 @@ data AlexUserState = AlexUserState
                    {
                      -- used by the lexer phase
                        lexerCommentDepth  :: Int
-                     , lexerStringState   :: Bool
+                     , lexerStringState   :: Maybe AlexPosn
+                         -- position where string started, when we are lexing a string
                      , lexerStringValue   :: String
                      -- used by the parser phase
                      , parserCollIdent    :: Map String Int
@@ -284,7 +292,7 @@ alexInitUserState :: AlexUserState
 alexInitUserState = AlexUserState
                    {
                        lexerCommentDepth  = 0
-                     , lexerStringState   = False
+                     , lexerStringState   = Nothing
                      , lexerStringValue   = ""
                      , parserCollIdent    = Map.empty
                      , parserCurrentToken = Lexeme undefined EOF Nothing
@@ -297,10 +305,10 @@ getLexerCommentDepth = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerComme
 setLexerCommentDepth :: Int -> Alex ()
 setLexerCommentDepth ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerCommentDepth=ss}}, ())
 
-getLexerStringState :: Alex Bool
+getLexerStringState :: Alex (Maybe AlexPosn)
 getLexerStringState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerStringState ust)
 
-setLexerStringState :: Bool -> Alex ()
+setLexerStringState :: Maybe AlexPosn -> Alex ()
 setLexerStringState ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerStringState=ss}}, ())
 
 getLexerStringValue :: Alex String
@@ -355,9 +363,9 @@ scanner str = let loop = do (t, m) <- alexComplementError alexMonadScan
                             if (cl == EOF)
                                then do f1 <- getLexerStringState
                                        d2 <- getLexerCommentDepth
-                                       if ((not f1) && (d2 == 0))
+                                       if ((f1 == Nothing) && (d2 == 0))
                                           then return [tok]
-                                          else if (f1)
+                                          else if (f1 /= Nothing)
                                                then alexError "String not closed at end of file"
                                                else alexError "Comment not closed at end of file"
                                else do toks <- loop
