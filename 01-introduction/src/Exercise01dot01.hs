@@ -1,4 +1,18 @@
-module Exercise01dot01 where
+{- Some of the exercise in Exercise 1.1 on pages 12-13
+-}
+module Exercise01dot01
+  ( Key
+  , Tree
+  , TreeKV
+  , draw
+  , empty
+  , example1
+  , example2
+  , insert
+  , insertKV
+  , lookupKV
+  , member
+  ) where
 
 import Data.List ( intercalate )
 
@@ -36,7 +50,7 @@ member key (Tree l k r)
 Extend the program to include not just membership, but the mappping of keys to
 bindings:
 -}
-data TreeKV a = LeafKV | TreeKV (TreeKV a) (Key, a) (TreeKV a)
+data TreeKV a = LeafKV | TreeKV !(TreeKV a) !(Key, a) !(TreeKV a)
   deriving (Eq, Ord, Show)
 
 insertKV :: TreeKV a -> Key -> a -> TreeKV a
@@ -60,7 +74,7 @@ These trees are not balanced; demonstrate the behavior on the following two
 sequences of insertions:
 -}
 
--- Utility function for drawing Trees
+-- A utility function for drawing `Tree`s
 draw :: Tree -> [String]
 draw Leaf = ["*"]
 draw (Tree Leaf k Leaf) = [show k]
@@ -69,14 +83,15 @@ draw (Tree tl k tr) = [show k] ++ shiftl (draw tl) ++ shiftr (draw tr)
     shiftl = zipWith (++) ("├─" : repeat "│ ")
     shiftr = zipWith (++) ("└─" : repeat " ")
 
--- Driver function for drawing Trees
+-- Driver function for drawing `Tree`s
 instance Show Tree where
+  show :: Tree -> String
   show t = intercalate "\n" (draw t)
 
--- `print example1` to show a representation of the tree
+-- Run `print example1` in GHCi to show a representation of the tree
 example1 :: Tree
 example1 = foldl (flip insert) Leaf ["t", "s", "p", "i", "p", "f", "b", "s", "t"]
 
--- `print example2` to show a representation of the tree
+-- Run `print example2` in GHCi to show a representation of the tree
 example2 :: Tree
 example2 = foldl (flip insert) Leaf ["a", "b", "c", "d", "e", "f", "g", "h", "i"]
