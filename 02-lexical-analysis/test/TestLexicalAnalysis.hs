@@ -1,6 +1,5 @@
 module Main (main) where
 
-import           Prelude                 hiding ( GT, LT, EQ )
 import           TigerLexer              hiding ( main )
 import           Test.Tasty                     ( TestTree
                                                 , defaultMain
@@ -26,7 +25,7 @@ tokens =
   [ Lexeme (AlexPn 42 2 1) LET (Just "let")
   , Lexeme (AlexPn 47 3 9) TYPE (Just "type")
   , Lexeme (AlexPn 53 3 15) (ID "arrtype") (Just "arrtype")
-  , Lexeme (AlexPn 61 3 23) EQ (Just "=")
+  , Lexeme (AlexPn 61 3 23) EQ' (Just "=")
   , Lexeme (AlexPn 63 3 25) ARRAY (Just "array")
   , Lexeme (AlexPn 69 3 31) OF (Just "of")
   , Lexeme (AlexPn 72 3 34) (ID "int") (Just "int")
