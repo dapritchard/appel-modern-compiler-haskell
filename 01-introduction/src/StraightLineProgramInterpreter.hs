@@ -4,10 +4,10 @@ pages 10-12.
 Run `interp prog` in GHCi to try it out.
 -}
 module StraightLineProgramInterpreter
-  ( Binop
-  , Exp
-  , Id
-  , Stm
+  ( Binop (..)
+  , Exp (..)
+  , Id (..)
+  , Stm (..)
   , Table
   , interp
   , prog

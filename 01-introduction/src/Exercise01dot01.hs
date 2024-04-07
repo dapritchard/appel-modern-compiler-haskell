@@ -2,8 +2,8 @@
 -}
 module Exercise01dot01
   ( Key
-  , Tree
-  , TreeKV
+  , Tree (..)
+  , TreeKV (..)
   , draw
   , empty
   , example1
