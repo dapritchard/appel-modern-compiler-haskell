@@ -4,7 +4,7 @@ import Data.List ( intercalate )
 
 type Key = String
 
-data Tree = Leaf | Tree Tree Key Tree
+data Tree = Leaf | Tree !Tree !Key !Tree
   deriving (Eq, Ord)
 
 empty :: Tree

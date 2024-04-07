@@ -46,7 +46,7 @@ interpStm (PrintStm []) t = do
   return t
 interpStm (PrintStm (e:es)) t = do
   (v, newT) <- interpExp e t
-  putStr (show v)
+  putStr $ show v ++ " "
   interpStm (PrintStm es) newT
 
 interpExp :: Exp -> Table -> IO (Integer, Table)
@@ -60,7 +60,6 @@ interpExp (OpExp e1 binop e2) t = do
     Minus -> return (x1 - x2, newT2)
     Times -> return (x1 * x2, newT2)
     Div -> return (x1 `quot` x2, newT2)
-  return (0, empty)
 interpExp (EseqExp s e) t = do
   newT <- interpStm s t
   interpExp e newT
