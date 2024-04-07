@@ -24,7 +24,7 @@ Implement a `member` function that returns `True` if the item is found, else
 `False`
 -}
 member :: Key -> Tree -> Bool
-member key Leaf = False
+member _ Leaf = False
 member key (Tree l k r)
   | key < k   = member key l
   | key > k   = member key r

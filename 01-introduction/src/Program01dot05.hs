@@ -3,13 +3,13 @@ programs
 -}
 module Program01dot05 where
 
-import Data.Map.Strict ( Map, empty, findWithDefault )
+import Data.Map.Strict ( Map, empty, findWithDefault, insert )
 import Data.Text ( Text )
 
 
 -- Types -----------------------------------------------------------------------
 
-type Id = String
+type Id = Text
 
 data Binop = Plus | Minus | Times | Div
 
@@ -29,26 +29,41 @@ type Table = Map Text Integer
 
 -- Interpreter -----------------------------------------------------------------
 
--- interp :: Stm -> IO ()
+interp :: Stm -> IO ()
+interp s = do
+  interpStm s empty
+  return ()
 
-interpStm :: Stm -> Table -> IO Stm
-interpStm _ _ = return (PrintStm [])
+interpStm :: Stm -> Table -> IO Table
+interpStm (CompoundStm s1 s2) t = do
+  newT <- interpStm s1 t
+  interpStm s2 newT
+interpStm (AssignStm id e) t = do
+  (v, newT) <- interpExp e t
+  return (insert id v newT)
+interpStm (PrintStm []) t = do
+  putStrLn ""
+  return t
+interpStm (PrintStm (e:es)) t = do
+  (v, newT) <- interpExp e t
+  putStr (show v)
+  interpStm (PrintStm es) newT
 
 interpExp :: Exp -> Table -> IO (Integer, Table)
 interpExp (IdExp v) t = return (findWithDefault 0 v t, t)
 interpExp (NumExp x) t = return (x, t)
 interpExp (OpExp e1 binop e2) t = do
-  (x1, t1) <- interpExp e1 t
-  (x2, t2) <- interpExp e2 t
+  (x1, newT1) <- interpExp e1 t
+  (x2, newT2) <- interpExp e2 newT1
   case binop of
-    Plus -> return (x1 + x2, t2)
-    Minus -> return (x1 - x2, t2)
-    Times -> return (x1 * x2, t2)
-    Div -> return (x1 `quot` x2, t2)
+    Plus -> return (x1 + x2, newT2)
+    Minus -> return (x1 - x2, newT2)
+    Times -> return (x1 * x2, newT2)
+    Div -> return (x1 `quot` x2, newT2)
   return (0, empty)
 interpExp (EseqExp s e) t = do
-  interpStm s t
-  interpExp e t
+  newT <- interpStm s t
+  interpExp e newT
 
 
 -- Data ------------------------------------------------------------------------
