@@ -10,6 +10,7 @@ library
       , Program01dot05
     build-depends:
       base ^>=4.17
+      , containers ^>= 0.6
       , text ^>= 2.1
     hs-source-dirs:   src
 
@@ -20,7 +21,7 @@ test-suite test-introduction
     hs-source-dirs:   test
     main-is:          TestIntroduction.hs
     build-depends:
-        base ^>=4.17
+        base ^>= 4.17
       , introduction
       , tasty ^>= 1.4.2
       , tasty-hunit ^>= 0.10.0
