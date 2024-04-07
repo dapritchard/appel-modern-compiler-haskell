@@ -3,7 +3,7 @@ programs
 -}
 module Program01dot05 where
 
-import Data.Map.Strict ( Map, empty )
+import Data.Map.Strict ( Map, empty, findWithDefault )
 import Data.Text ( Text )
 
 
@@ -31,11 +31,25 @@ type Table = Map Text Integer
 
 -- interp :: Stm -> IO ()
 
-interpStm :: Stm -> Table -> Stm
-interpStm _ _ = PrintStm []
+interpStm :: Stm -> Table -> IO Stm
+interpStm _ _ = return (PrintStm [])
 
-interpExp :: Exp -> Table -> (Integer, Table)
-interpExp _ _ = (0, empty)
+interpExp :: Exp -> Table -> IO (Integer, Table)
+interpExp (IdExp v) t = return (findWithDefault 0 v t, t)
+interpExp (NumExp x) t = return (x, t)
+interpExp (OpExp e1 binop e2) t = do
+  (x1, t1) <- interpExp e1 t
+  (x2, t2) <- interpExp e2 t
+  case binop of
+    Plus -> return (x1 + x2, t2)
+    Minus -> return (x1 - x2, t2)
+    Times -> return (x1 * x2, t2)
+    Div -> return (x1 `quot` x2, t2)
+  return (0, empty)
+interpExp (EseqExp s e) t = do
+  interpStm s t
+  interpExp e t
+
 
 -- Data ------------------------------------------------------------------------
 
