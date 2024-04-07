@@ -7,7 +7,7 @@ library
     default-extensions: OverloadedStrings
     exposed-modules:
         Exercise01dot01
-      , Program01dot05
+      , StraightLineProgramInterpreter
     build-depends:
       base ^>=4.17
       , containers ^>= 0.6
