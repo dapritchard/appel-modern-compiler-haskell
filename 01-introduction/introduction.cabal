@@ -12,6 +12,7 @@ library
       base ^>=4.17
       , containers ^>= 0.6
       , text ^>= 2.1
+      , mtl
     hs-source-dirs:   src
 
 test-suite test-introduction
