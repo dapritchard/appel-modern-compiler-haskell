@@ -24,6 +24,7 @@ import Control.Monad.State.Strict qualified as State
 import Data.Map.Strict (Map, empty, insert)
 import Data.Map.Strict qualified as M
 import Data.Text (Text, pack)
+import Data.Text.IO qualified as Text
 
 -- Types -----------------------------------------------------------------------
 
@@ -69,7 +70,7 @@ interp s = do
   let init = IState {table = empty, output = ""}
       res = State.execStateT (interpStm s) init
   case res of
-    Right (IState {output}) -> print output
+    Right (IState {output}) -> Text.putStr output
     Left err -> throwIO err
 
 {- Interpret an expression with regards to a given environment using the types
@@ -94,9 +95,7 @@ interpStm (PrintStm es) =
   -- We want a newline at the end
   -- but no extra space.
   let printExps [] = pure ()
-      printExps [e] =
-        (interpExp e >>= expToOutput "")
-          >> State.modify' (modifyOutput (<> "\n"))
+      printExps [e] = interpExp e >>= expToOutput "\n"
       -- Concat results in output field of IState,
       -- separated by a space.
       printExps (e : es') =
