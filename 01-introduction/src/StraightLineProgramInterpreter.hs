@@ -16,8 +16,14 @@ module StraightLineProgramInterpreter
   )
 where
 
-import Data.Map.Strict (Map, empty, findWithDefault, insert)
-import Data.Text (Text)
+import Control.Exception (Exception, throwIO)
+import Control.Monad ((>=>))
+import Control.Monad.Except (throwError)
+import Control.Monad.State.Strict (StateT, get, gets)
+import Control.Monad.State.Strict qualified as State
+import Data.Map.Strict (Map, empty, insert)
+import Data.Map.Strict qualified as M
+import Data.Text (Text, pack)
 
 -- Types -----------------------------------------------------------------------
 
@@ -37,33 +43,108 @@ data Stm
 
 data Exp
   = IdExp Text
-  | NumExp Integer
+  | NumExp Int
   | OpExp Exp Binop Exp
   | EseqExp Stm Exp
 
-type Table = Map Text Integer
+type Table = Map Id Int
 
 -- Interpreter -----------------------------------------------------------------
 
--- Interpret a new program starting with an empty environment
+data InterpErr
+  = DivByZero
+  | VariableNotFound Id
+  deriving (Show)
+
+instance Exception InterpErr
+
+data IState = IState {table :: Table, output :: Text}
+  deriving (Show)
+
+type Interpreter = StateT IState (Either InterpErr)
+
+-- | Interpret a new program starting with an empty environment.
 interp :: Stm -> IO ()
-interp s = undefined
+interp s = do
+  let init = IState {table = empty, output = ""}
+      res = State.execStateT (interpStm s) init
+  case res of
+    Right (IState {output}) -> print output
+    Left err -> throwIO err
 
 {- Interpret an expression with regards to a given environment using the types
-suggested on page 11. Two defects of this interpreter component are that:
-1. If a program refers to a variable name that doesn't exist then a value of `0`
-is used
-2. If the program divides by 0 then the interpreter will throw an exception
+suggested on page 11.
 -}
-interpExp :: Exp -> Table -> IO (Integer, Table)
-interpExp = undefined
+interpExp :: Exp -> Interpreter Int
+interpExp (IdExp nm) = tableLookup nm
+interpExp (NumExp x) = pure x
+interpExp (OpExp e1 op e2) = do
+  x <- interpExp e1
+  y <- interpExp e2
+  calcBinop op x y
+interpExp (EseqExp s e) = interpStm s >> interpExp e
 
 {- Interpret a statment with regards to a given environment using the types
-suggested on page 11. The `PrintStm` case cheats a little bit by printing a
-trailing space at the end of the line.
+suggested on page 11. Output to print is accumulated in 'IState'.
 -}
-interpStm :: Stm -> Table -> IO Table
-interpStm = undefined
+interpStm :: Stm -> Interpreter ()
+interpStm (CompoundStm s1 s2) = interpStm s1 >> interpStm s2
+interpStm (AssignStm nm e) = interpExp e >>= tableInsert nm
+interpStm (PrintStm es) =
+  -- We want a newline at the end
+  -- but no extra space.
+  let printExps [] = pure ()
+      printExps [e] =
+        (interpExp e >>= expToOutput "")
+          >> State.modify' (modifyOutput (<> "\n"))
+      -- Concat results in output field of IState,
+      -- separated by a space.
+      printExps (e : es') =
+        (interpExp e >>= expToOutput " ")
+          >> printExps es'
+   in printExps es
+
+-- Helpers
+
+calcBinop :: Binop -> Int -> Int -> Interpreter Int
+calcBinop Plus x y = pure $ x + y
+calcBinop Minus x y = pure $ x - y
+calcBinop Times x y = pure $ x * y
+calcBinop Div _ 0 = throwError DivByZero
+calcBinop Div x y = pure $ x `div` y
+
+-- | @M.'lookup'@, converting failures to find the given 'Id' into
+-- 'VariableNotFound' errors.
+tableLookup :: Id -> Interpreter Int
+tableLookup nm = gets (M.lookup nm . table) >>= wrap
+  where
+    wrap Nothing = throwError (VariableNotFound nm)
+    wrap (Just x) = pure x
+
+-- | TODO: subtle difference with Appel's book
+-- and M.lookup behavior: Former keeps the *first* definition?
+tableInsert :: Id -> Int -> Interpreter ()
+tableInsert nm x = State.modify' (modifyTable (M.insert nm x))
+
+-- | 'tshow' the result of an 'Exp', which is an 'Int',
+-- appending a separator, and adding it to 'output' of 'IState'.
+expToOutput :: Text -> Int -> Interpreter ()
+expToOutput sep x = State.modify' (modifyOutput (<> res))
+  where
+    res = tshow x <> sep
+
+tshow :: (Show a) => a -> Text
+tshow = pack . show
+
+-- TODO: lenses help here.
+
+-- | Modify the table element of IState.
+modifyTable :: (Table -> Table) -> IState -> IState
+modifyTable f t@(IState {table}) = t {table = f table}
+
+-- | Modify the output element of IState.
+modifyOutput :: (Text -> Text) -> IState -> IState
+modifyOutput f t@(IState {output}) = t {output = f output}
 
 -- Data ------------------------------------------------------------------------
 
