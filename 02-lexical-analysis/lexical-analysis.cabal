@@ -7,8 +7,10 @@ extra-source-files:
 
 library
     default-language: GHC2021
+    default-extensions: OverloadedStrings
     exposed-modules:
         TigerLexer
+        TigerLexerToo
     autogen-modules:
         TigerLexer
     build-depends:
@@ -16,6 +18,8 @@ library
       , containers ^>=0.6.5
       , directory ^>=1.3.7
       , array ^>=0.5.4
+      , text >= 2 
+      , megaparsec
     hs-source-dirs:   src
     build-tool-depends: alex:alex ^>=3.5
 
