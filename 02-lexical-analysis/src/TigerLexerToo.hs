@@ -39,17 +39,20 @@ space =
 mkLexeme :: Parser a -> Parser a
 mkLexeme = P.Lexer.lexeme space
 
--- | TODO:
+-- | TODO: do I need mkLexeme here?
 symbol :: Text -> Parser Text
-symbol = mkLexeme . P.Lexer.symbol space
+symbol = P.Lexer.symbol space
 
--- TODO: is "_" allowed?
--- | [a-z][a-zA-Z0-9]*
+char :: Char -> Parser Char
+char = mkLexeme . P.Char.char
+
+-- | [a-zA-Z][_a-zA-Z0-9]*
 identifier :: Parser Text
 identifier = mkLexeme p
   where
-    p = T.cons <$> P.Char.lowerChar <*>
-         (mconcat <$> many P.Char.alphaNumChar)
+    underscore = char '_'
+    p = T.cons <$> P.Char.letterChar <*>
+      (T.pack <$> many (P.Char.alphaNumChar <|> underscore))
 
 
 -- | Integer lexer.
@@ -71,8 +74,8 @@ manyTill p end = go
 
 -- Lexemes
 
--- TODO: unclear whether this is correct sequencing
-lexemes :: Parser LexemeClass
+-- TODO: Incorrect sequencing. Need to preserve precedence.
+lexemes :: Parser [LexemeClass]
 lexemes = many l <* eof
   where 
     l = asum 
@@ -91,7 +94,7 @@ eof,
   string,
   punctuation,
   math,
-  controlFlow :: Parser LexemeClass
+  keywords :: Parser LexemeClass
 eof = EOF <$ P.eof
 ident = ID <$> identifier
 int = INT <$> integer
@@ -111,20 +114,20 @@ punctuation =
     ]
 math =
   asum
-    [ PLUS <$ symbol "\+",
-      MINUS <$ symbol "\-",
-      TIMES <$ symbol "\*",
-      DIVIDE <$ symbol "\/",
-      EQ' <$ symbol "\=",
-      NEQ <$ symbol "\<\>",
-      LT' <$ symbol "\<",
-      LE <$ symbol "\<\=",
-      GT' <$ symbol "\>",
-      GE <$ symbol "\>\=",
+    [ PLUS <$ symbol "+",
+      MINUS <$ symbol "-",
+      TIMES <$ symbol "*",
+      DIVIDE <$ symbol "/",
+      EQ' <$ symbol "=",
+      NEQ <$ symbol "<>",
+      LT' <$ symbol "<",
+      LE <$ symbol "<=",
+      GT' <$ symbol ">",
+      GE <$ symbol ">=",
       AND <$ symbol "&",
-      OR <$ symbol "\|"
+      OR <$ symbol "|"
     ]
-assign = ASSIGN <$ symbol ":\="
+assign = ASSIGN <$ symbol ":="
 keywords =
   asum
     [ TYPE <$ symbol "type",

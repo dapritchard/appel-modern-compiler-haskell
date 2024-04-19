@@ -30,6 +30,8 @@ test-suite test-lexical-analysis
     main-is:          TestLexicalAnalysis.hs
     build-depends:
         base ^>= 4.17
+      , directory
       , lexical-analysis
       , tasty ^>= 1.4.2
       , tasty-hunit ^>= 0.10.0
+      , text >= 2
