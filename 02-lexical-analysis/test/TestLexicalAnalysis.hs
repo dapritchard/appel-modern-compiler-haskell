@@ -1,6 +1,7 @@
 module Main (main) where
 
 import           TigerLexer              hiding ( main )
+import           TigerLexerToo              qualified as Tiger2
 import           Test.Tasty                     ( TestTree
                                                 , defaultMain
                                                 , testGroup
@@ -9,15 +10,15 @@ import           Test.Tasty.HUnit               ( (@=?)
                                                 , (@?)
                                                 , assertFailure
                                                 , testCase
+                                                , testCaseSteps
                                                 )
 
 -- Test the lexing of the test1.tig file
 main :: IO ()
-main = do
-  s <- readFile "test/testcases/test1.tig"
-  let sr = scanner s
-  let tests = testGroup "test1.tig" [compareLex sr (Right tokens)]
-  defaultMain tests
+main = defaultMain tests1
+
+tests1 :: TestTree
+tests1 = testGroup "TigerLexer" [ mkCompareLexTest1 "test/testcases/test1.tig" tokens ]
 
 -- The expected values of the lexed test1.tig contents
 tokens :: [Lexeme]
@@ -48,14 +49,21 @@ tokens =
 
 type Scan = Either String [Lexeme]
 
+-- | Read the file and compare to the expected value given.
+mkCompareLexTest1 :: FilePath -> [Lexeme] -> TestTree
+mkCompareLexTest1 f lexemes = testCaseSteps ("Compare elements in: " ++ f)
+  $ \step -> do
+  actual <- scanner <$> readFile "test/testcases/test1.tig"
+  let expected = Right lexemes
+  mapM_ (\(msg, t) -> step msg >> t) $ compareLex expected actual
+
 -- Test for equality on a element-by-element basis
-compareLex :: Scan -> Scan -> TestTree
-compareLex (Left x) (Left y) = testCase "Compare elements" $ x @=? y
-compareLex (Left _) (Right _) = testCase "Compare elements" (assertFailure "Left vs. Right")
-compareLex (Right _) (Left _) = testCase "Compare elements" (assertFailure "Right vs. Left")
+compareLex :: Scan -> Scan -> [(String, IO ())]
+compareLex (Left x) (Left y) = [("", x @=? y)]
+compareLex (Left _) (Right _) = [("", assertFailure "Left vs. Right")]
+compareLex (Right _) (Left _) = [("", assertFailure "Right vs. Left")]
 compareLex (Right x) (Right y)
-  | length x /= length y = testCase "Compare elements" (assertFailure "Differing lengths")
-  | null x               = testGroup "Compare elements" []
-  | otherwise            = testGroup "Compare elements" $ map test (zip3 [0..] (init x) (init y))
+  | length x /= length y = [("", assertFailure "Differing lengths")]
+  | otherwise            = map test (zip3 [0..] (init x) (init y))
  where
-  test (n, a, b) = testCase ("Elem" ++ show n) $ a @=? b
+  test (n, a, b) = (("Elem" ++ show n), a @=? b)
