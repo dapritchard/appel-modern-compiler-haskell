@@ -11,18 +11,36 @@ import           Test.Tasty.HUnit               ( (@=?)
                                                 , assertFailure
                                                 , testCase
                                                 , testCaseSteps
+                                                , Assertion
                                                 )
+import Data.Text qualified as Text
+import System.Directory (listDirectory, withCurrentDirectory)
+import Data.List (sort)
 
 -- Test the lexing of the test1.tig file
 main :: IO ()
-main = defaultMain tests1
+main = defaultMain tests
 
-tests1 :: TestTree
-tests1 = testGroup "TigerLexer" [ mkCompareLexTest1 "test/testcases/test1.tig" tokens ]
+tests :: TestTree
+tests = testGroup "Lexer tests" [ testsTiger, testsTigerToo, testsCompare ]
+
+testsTiger :: TestTree
+testsTiger = testGroup "TigerLexer" [ mkCompareLexTestTiger "test/testcases/test1.tig" tokensTestTiger1 ]
+
+
+testsTigerToo :: TestTree
+testsTigerToo = testGroup "TigerLexerToo" [ mkCompareLexTestTigerToo "test/testcases/test1.tig" tokensTestTigerToo1 ]
+
+testsCompare :: TestTree 
+testsCompare = testCaseSteps "TigerLexer v. TigerLexerToo in:" $ \step -> do
+  let dir ="./test/testcases" 
+  fs <- sort <$> listDirectory dir
+  withCurrentDirectory dir $
+    mapM_ (\f -> step f >> mkCompareSuccessfulLexersTest f) fs
 
 -- The expected values of the lexed test1.tig contents
-tokens :: [Lexeme]
-tokens =
+tokensTestTiger1 :: [Lexeme]
+tokensTestTiger1 =
   [ Lexeme (AlexPn 42 2 1) LET (Just "let")
   , Lexeme (AlexPn 47 3 9) TYPE (Just "type")
   , Lexeme (AlexPn 53 3 15) (ID "arrtype") (Just "arrtype")
@@ -47,11 +65,32 @@ tokens =
   , Lexeme undefined EOF Nothing
   ]
 
+tokensTestTigerToo1 :: [Tiger2.LexemeClass]
+tokensTestTigerToo1 = map lexemeToLexemeClass tokensTestTiger1
+
+{- Compare  lexers -}
+
+mkCompareSuccessfulLexersTest :: FilePath -> Assertion
+mkCompareSuccessfulLexersTest f = do
+    s <- readFile f
+    let expected = scanner s
+    let actual = Tiger2.scanner $ Text.pack s
+    -- Compare successful results. If one fails the test fails.
+    let
+      cmp (Left s) _ = assertFailure $ "TigerLexer.scanner failed with: " ++ s
+      cmp _ (Left err) = 
+        assertFailure $ "TigerLexerToo.scanner failed with: " ++ show err
+      cmp (Right e) (Right a) = mapM_ (uncurry (@=?)) $
+        zipWith (\l1 l2 -> (lexemeToLexemeClass l1, l2)) e a
+    
+    cmp expected actual
+
+{- Test TigerLexer -}
 type Scan = Either String [Lexeme]
 
 -- | Read the file and compare to the expected value given.
-mkCompareLexTest1 :: FilePath -> [Lexeme] -> TestTree
-mkCompareLexTest1 f lexemes = testCaseSteps ("Compare elements in: " ++ f)
+mkCompareLexTestTiger :: FilePath -> [Lexeme] -> TestTree
+mkCompareLexTestTiger f lexemes = testCaseSteps ("Compare elements in: " ++ f)
   $ \step -> do
   actual <- scanner <$> readFile "test/testcases/test1.tig"
   let expected = Right lexemes
@@ -67,3 +106,78 @@ compareLex (Right x) (Right y)
   | otherwise            = map test (zip3 [0..] (init x) (init y))
  where
   test (n, a, b) = (("Elem" ++ show n), a @=? b)
+
+
+{- Test TigerLexerToo -}
+
+mkCompareLexTestTigerToo :: FilePath -> [Tiger2.LexemeClass] -> TestTree
+mkCompareLexTestTigerToo f lexemes = testCaseSteps ("Compare elements in: " ++ f)
+  $ \step -> do
+  actual <- Tiger2.scanner . Text.pack <$> readFile "test/testcases/test1.tig"
+  case actual of
+    Left err -> do
+      step "Actual is Left"
+      assertFailure "Lexing should succeed"
+    Right lexemes' -> do
+      let res = zip3 [0..] lexemes lexemes'
+      mapM_ (\(i, e, a) -> step ("Elem " ++ show i) >> (e @=? a)) res
+
+{- UTILS -}
+
+lexemeToLexemeClass :: Lexeme -> Tiger2.LexemeClass
+lexemeToLexemeClass (Lexeme _ l _ ) = convertLexemeClass l
+
+-- NOTE: :(
+convertLexemeClass :: LexemeClass -> Tiger2.LexemeClass
+convertLexemeClass c = case c of
+ EOF -> Tiger2.EOF
+ ID x -> Tiger2.ID (Text.pack x)
+ INT x -> Tiger2.INT x
+ STRING x -> Tiger2.STRING (Text.pack x)
+ COMMA -> Tiger2.COMMA
+ COLON -> Tiger2.COLON
+ SEMICOLON -> Tiger2.SEMICOLON
+ LPAREN -> Tiger2.LPAREN
+ RPAREN -> Tiger2.RPAREN
+ LBRACK -> Tiger2.LBRACK
+ RBRACK -> Tiger2.RBRACK
+ LBRACE -> Tiger2.LBRACE
+ RBRACE -> Tiger2.RBRACE
+ DOT -> Tiger2.DOT
+ PLUS -> Tiger2.PLUS
+ MINUS -> Tiger2.MINUS
+ TIMES -> Tiger2.TIMES
+ DIVIDE -> Tiger2.DIVIDE
+ EQ' -> Tiger2.EQ'
+ NEQ -> Tiger2.NEQ
+ LT' -> Tiger2.LT'
+ LE -> Tiger2.LE
+ GT' -> Tiger2.GT'
+ GE -> Tiger2.GE
+ AND -> Tiger2.AND
+ OR -> Tiger2.OR
+ UNARYMINUS -> Tiger2.UNARYMINUS
+ ASSIGN -> Tiger2.ASSIGN
+ IF -> Tiger2.IF
+ THEN -> Tiger2.THEN
+ ELSE -> Tiger2.ELSE
+ WHILE -> Tiger2.WHILE
+ FOR -> Tiger2.FOR
+ TO -> Tiger2.TO
+ DO -> Tiger2.DO
+ END -> Tiger2.END
+ BREAK -> Tiger2.BREAK
+ OF -> Tiger2.OF
+ LET -> Tiger2.LET
+ IN -> Tiger2.IN
+ ARRAY -> Tiger2.ARRAY
+ NIL -> Tiger2.NIL
+ FUNCTION -> Tiger2.FUNCTION
+ VAR -> Tiger2.VAR
+ TYPE -> Tiger2.TYPE
+ EXCEPTION -> Tiger2.EXCEPTION
+ TRY -> Tiger2.TRY
+ HANDLE -> Tiger2.HANDLE
+ RAISE -> Tiger2.RAISE
+
+
