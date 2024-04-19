@@ -8,6 +8,7 @@ library
     exposed-modules:
         Exercise01dot01
       , StraightLineProgramInterpreter
+      , StraightLineProgramInterpreterToo
     build-depends:
       base ^>=4.17
       , containers ^>= 0.6

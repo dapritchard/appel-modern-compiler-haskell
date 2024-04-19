@@ -3,28 +3,19 @@ pages 10-12.
 
 Run `interp prog` in GHCi to try it out.
 -}
-{-# LANGUAGE StrictData #-}
-
 module StraightLineProgramInterpreter
-  ( Binop (..),
-    Exp (..),
-    Id (..),
-    Stm (..),
-    Table,
-    interp,
-    prog,
-  )
-where
+  ( Binop (..)
+  , Exp (..)
+  , Id (..)
+  , Stm (..)
+  , Table
+  , interp
+  , prog
+  ) where
 
-import Control.Exception (Exception, throwIO)
-import Control.Monad ((>=>))
-import Control.Monad.Except (throwError)
-import Control.Monad.State.Strict (StateT, get, gets)
-import Control.Monad.State.Strict qualified as State
-import Data.Map.Strict (Map, empty, insert)
-import Data.Map.Strict qualified as M
-import Data.Text (Text, pack)
-import Data.Text.IO qualified as Text
+import Data.Map.Strict ( Map, empty, findWithDefault, insert )
+import Data.Text ( Text )
+
 
 -- Types -----------------------------------------------------------------------
 
@@ -37,113 +28,68 @@ type Id = Text
 
 data Binop = Plus | Minus | Times | Div
 
-data Stm
-  = CompoundStm Stm Stm
-  | AssignStm Id Exp
-  | PrintStm [Exp]
+data Stm =
+    CompoundStm !Stm !Stm
+  | AssignStm !Id !Exp
+  | PrintStm ![Exp]
 
-data Exp
-  = IdExp Text
-  | NumExp Int
-  | OpExp Exp Binop Exp
-  | EseqExp Stm Exp
+data Exp =
+    IdExp !Text
+  | NumExp !Integer
+  | OpExp !Exp !Binop !Exp
+  | EseqExp !Stm !Exp
 
-type Table = Map Id Int
+type Table = Map Text Integer
+
 
 -- Interpreter -----------------------------------------------------------------
 
-data InterpErr
-  = DivByZero
-  | VariableNotFound Id
-  deriving (Show)
-
-instance Exception InterpErr
-
-data IState = IState {table :: Table, output :: Text}
-  deriving (Show)
-
-type Interpreter = StateT IState (Either InterpErr)
-
--- | Interpret a new program starting with an empty environment.
+-- Interpret a new program starting with an empty environment
 interp :: Stm -> IO ()
 interp s = do
-  let init = IState {table = empty, output = ""}
-      res = State.execStateT (interpStm s) init
-  case res of
-    Right (IState {output}) -> Text.putStr output
-    Left err -> throwIO err
+  interpStm s empty
+  return ()
 
 {- Interpret an expression with regards to a given environment using the types
-suggested on page 11.
+suggested on page 11. Two defects of this interpreter component are that:
+1. If a program refers to a variable name that doesn't exist then a value of `0`
+is used
+2. If the program divides by 0 then the interpreter will throw an exception
 -}
-interpExp :: Exp -> Interpreter Int
-interpExp (IdExp nm) = tableLookup nm
-interpExp (NumExp x) = pure x
-interpExp (OpExp e1 op e2) = do
-  x <- interpExp e1
-  y <- interpExp e2
-  calcBinop op x y
-interpExp (EseqExp s e) = interpStm s >> interpExp e
+interpExp :: Exp -> Table -> IO (Integer, Table)
+interpExp (IdExp v) t = return (findWithDefault 0 v t, t)
+interpExp (NumExp x) t = return (x, t)
+interpExp (OpExp e1 binop e2) t = do
+  (x1, newT1) <- interpExp e1 t
+  (x2, newT2) <- interpExp e2 newT1
+  case binop of
+    Plus -> return (x1 + x2, newT2)
+    Minus -> return (x1 - x2, newT2)
+    Times -> return (x1 * x2, newT2)
+    Div -> return (x1 `quot` x2, newT2)
+interpExp (EseqExp s e) t = do
+  newT <- interpStm s t
+  interpExp e newT
 
 {- Interpret a statment with regards to a given environment using the types
-suggested on page 11. Output to print is accumulated in 'IState'.
+suggested on page 11. The `PrintStm` case cheats a little bit by printing a
+trailing space at the end of the line.
 -}
-interpStm :: Stm -> Interpreter ()
-interpStm (CompoundStm s1 s2) = interpStm s1 >> interpStm s2
-interpStm (AssignStm nm e) = interpExp e >>= tableInsert nm
-interpStm (PrintStm es) =
-  -- We want a newline at the end
-  -- but no extra space.
-  let printExps [] = pure ()
-      printExps [e] = interpExp e >>= expToOutput "\n"
-      -- Concat results in output field of IState,
-      -- separated by a space.
-      printExps (e : es') =
-        (interpExp e >>= expToOutput " ")
-          >> printExps es'
-   in printExps es
+interpStm :: Stm -> Table -> IO Table
+interpStm (CompoundStm s1 s2) t = do
+  newT <- interpStm s1 t
+  interpStm s2 newT
+interpStm (AssignStm id e) t = do
+  (v, newT) <- interpExp e t
+  return (insert id v newT)
+interpStm (PrintStm []) t = do
+  putStrLn ""
+  return t
+interpStm (PrintStm (e:es)) t = do
+  (v, newT) <- interpExp e t
+  putStr $ show v ++ " "
+  interpStm (PrintStm es) newT
 
--- Helpers
-
-calcBinop :: Binop -> Int -> Int -> Interpreter Int
-calcBinop Plus x y = pure $ x + y
-calcBinop Minus x y = pure $ x - y
-calcBinop Times x y = pure $ x * y
-calcBinop Div _ 0 = throwError DivByZero
-calcBinop Div x y = pure $ x `div` y
-
--- | @M.'lookup'@, converting failures to find the given 'Id' into
--- 'VariableNotFound' errors.
-tableLookup :: Id -> Interpreter Int
-tableLookup nm = gets (M.lookup nm . table) >>= wrap
-  where
-    wrap Nothing = throwError (VariableNotFound nm)
-    wrap (Just x) = pure x
-
--- | TODO: subtle difference with Appel's book
--- and M.lookup behavior: Former keeps the *first* definition?
-tableInsert :: Id -> Int -> Interpreter ()
-tableInsert nm x = State.modify' (modifyTable (M.insert nm x))
-
--- | 'tshow' the result of an 'Exp', which is an 'Int',
--- appending a separator, and adding it to 'output' of 'IState'.
-expToOutput :: Text -> Int -> Interpreter ()
-expToOutput sep x = State.modify' (modifyOutput (<> res))
-  where
-    res = tshow x <> sep
-
-tshow :: (Show a) => a -> Text
-tshow = pack . show
-
--- TODO: lenses help here.
-
--- | Modify the table element of IState.
-modifyTable :: (Table -> Table) -> IState -> IState
-modifyTable f t@(IState {table}) = t {table = f table}
-
--- | Modify the output element of IState.
-modifyOutput :: (Text -> Text) -> IState -> IState
-modifyOutput f t@(IState {output}) = t {output = f output}
 
 -- Data ------------------------------------------------------------------------
 
@@ -159,15 +105,15 @@ topLevelLHS = AssignStm "a" (OpExp (NumExp 5) Plus (NumExp 3))
 topLevelRHS :: Stm
 topLevelRHS =
   CompoundStm
-    ( AssignStm
-        "b"
-        ( EseqExp
-            ( PrintStm
-                [ IdExp "a",
-                  OpExp (IdExp "a") Minus (NumExp 1)
-                ]
-            )
-            (OpExp (NumExp 10) Times (IdExp "a"))
+    (AssignStm
+      "b"
+      (EseqExp
+        (PrintStm [
+            IdExp "a"
+          , OpExp (IdExp "a") Minus (NumExp 1)
+          ]
         )
+        (OpExp (NumExp 10) Times (IdExp "a"))
+      )
     )
     (PrintStm [IdExp "b"])
