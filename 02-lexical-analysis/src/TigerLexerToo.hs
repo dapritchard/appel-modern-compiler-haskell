@@ -2,7 +2,8 @@
 -- with https://markkarpov.com/tutorial/megaparsec.html#lexing
 module TigerLexerToo where
 
-import Control.Applicative (Alternative, asum, empty, many, (<|>))
+import Control.Monad (void)
+import Control.Applicative (Alternative, asum, empty, some, many, (<|>))
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
@@ -32,16 +33,31 @@ space :: Parser ()
 space =
   P.Lexer.space
     P.Char.space1
-    empty
+    --  TODO:
+    -- Line comments are effectively block comments
+    (P.Lexer.skipBlockComment "/*" "*/")
     (P.Lexer.skipBlockComment "/*" "*/")
 
 -- | Combinator for defining lexemes.
 mkLexeme :: Parser a -> Parser a
 mkLexeme = P.Lexer.lexeme space
 
--- | TODO: do I need mkLexeme here?
 symbol :: Text -> Parser Text
 symbol = P.Lexer.symbol space
+
+-- TODO: need a better way to do exact
+-- match, since we might not want to require
+-- whitespace after.
+
+-- | Match exactly the keyword 's'.
+-- 'try' used to allow backtracking.
+keyword :: Text -> Parser Text
+keyword s = P.Lexer.lexeme space p
+  where p = P.try $ P.Char.string s <* P.Char.space1
+
+-- TODO: might need to be different
+symbolExact :: Text -> Parser Text
+symbolExact = keyword
 
 char :: Char -> Parser Char
 char = mkLexeme . P.Char.char
@@ -74,18 +90,21 @@ manyTill p end = go
 
 -- Lexemes
 
--- TODO: Incorrect sequencing. Need to preserve precedence.
+-- TODO: Need to set precedence here
+
+-- | See note in 'P.Char.Lexer' about the convention of
+-- needing to call 'space' before any other lexemes to catch
+-- whitespace or comments at the beginning of the file.
 lexemes :: Parser [LexemeClass]
-lexemes = many l <* eof
+lexemes = space *> many l <* eof
   where 
-    l = asum 
-          [ident
+    l = keywords <|> asum 
+          [ ident
           , int
           , string
           , punctuation
           , math
           , assign
-          , keywords
           ]
 
 eof,
@@ -121,36 +140,37 @@ math =
       EQ' <$ symbol "=",
       NEQ <$ symbol "<>",
       LT' <$ symbol "<",
-      LE <$ symbol "<=",
+      LE <$ keyword "<=",
       GT' <$ symbol ">",
-      GE <$ symbol ">=",
+      GE <$ keyword ">=",
       AND <$ symbol "&",
       OR <$ symbol "|"
     ]
-assign = ASSIGN <$ symbol ":="
+-- Needed to avoid partial match of :
+assign = ASSIGN <$ keyword ":="
 keywords =
   asum
-    [ TYPE <$ symbol "type",
-      VAR <$ symbol "var",
-      FUNCTION <$ symbol "function",
-      BREAK <$ symbol "break",
-      OF <$ symbol "of",
-      END <$ symbol "end",
-      IN <$ symbol "in",
-      NIL <$ symbol "nil",
-      LET <$ symbol "let",
-      DO <$ symbol "do",
-      TO <$ symbol "to",
-      FOR <$ symbol "for",
-      WHILE <$ symbol "while",
-      ELSE <$ symbol "else",
-      THEN <$ symbol "then",
-      IF <$ symbol "if",
-      ARRAY <$ symbol "array",
-      EXCEPTION <$ symbol "exception",
-      HANDLE <$ symbol "handle",
-      TRY <$ symbol "try",
-      RAISE <$ symbol "raise"
+    [ TYPE <$ keyword "type",
+      VAR <$ keyword "var",
+      FUNCTION <$ keyword "function",
+      BREAK <$ keyword "break",
+      OF <$ keyword "of",
+      END <$ keyword "end",
+      IN <$ keyword "in",
+      NIL <$ keyword "nil",
+      LET <$ keyword "let",
+      DO <$ keyword "do",
+      TO <$ keyword "to",
+      FOR <$ keyword "for",
+      WHILE <$ keyword "while",
+      ELSE <$ keyword "else",
+      THEN <$ keyword "then",
+      IF <$ keyword "if",
+      ARRAY <$ keyword "array",
+      EXCEPTION <$ keyword "exception",
+      HANDLE <$ keyword "handle",
+      TRY <$ keyword "try",
+      RAISE <$ keyword "raise"
     ]
 
 

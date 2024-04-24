@@ -22,10 +22,9 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Lexer tests" [ testsTiger ]
-  -- TODO: megaparsec lexer tests fail because the lexer
-  -- needs some work.
-  --[ testsTiger, testsTigerToo, testsCompare ]
+tests = testGroup "Lexer tests" [testsTiger]
+  -- TODO: Tiger2 parser still needs work
+  -- [ testsTiger, testsTigerToo, testsCompare ]
 
 testsTiger :: TestTree
 testsTiger = testGroup "TigerLexer" [ mkCompareLexTestTiger "test/testcases/test1.tig" tokensTestTiger1 ]
@@ -85,7 +84,7 @@ mkCompareSuccessfulLexersTest f = do
         assertFailure $ "TigerLexerToo.scanner failed with: " ++ show err
       cmp (Right e) (Right a) = mapM_ (uncurry (@=?)) $
         zipWith (\l1 l2 -> (lexemeToLexemeClass l1, l2)) e a
-    
+ 
     cmp expected actual
 
 {- Test TigerLexer -}
@@ -95,7 +94,7 @@ type Scan = Either String [Lexeme]
 mkCompareLexTestTiger :: FilePath -> [Lexeme] -> TestTree
 mkCompareLexTestTiger f lexemes = testCaseSteps ("Compare elements in: " ++ f)
   $ \step -> do
-  actual <- scanner <$> readFile "test/testcases/test1.tig"
+  actual <- scanner <$> readFile f
   let expected = Right lexemes
   mapM_ (\(msg, t) -> step msg >> t) $ compareLex expected actual
 
@@ -116,7 +115,7 @@ compareLex (Right x) (Right y)
 mkCompareLexTestTigerToo :: FilePath -> [Tiger2.LexemeClass] -> TestTree
 mkCompareLexTestTigerToo f lexemes = testCaseSteps ("Compare elements in: " ++ f)
   $ \step -> do
-  actual <- Tiger2.scanner . Text.pack <$> readFile "test/testcases/test1.tig"
+  actual <- Tiger2.scanner . Text.pack <$> readFile f
   case actual of
     Left err -> do
       step "Actual is Left"
