@@ -32,7 +32,7 @@ import Tiger.Tokens
   '*'           { Lexeme _ TIMES _ }
   '/'           { Lexeme _ DIVIDE _ }
   '='           { Lexeme _ EQ' _ }
-  NEQ           { Lexeme _ NEQ _ }
+  '<>'          { Lexeme _ NEQ _ }
   '<'           { Lexeme _ LT' _ }
   '<='          { Lexeme _ LE _ }
   '>'           { Lexeme _ GT' _ }
@@ -57,11 +57,12 @@ import Tiger.Tokens
   function      { Lexeme _ FUNCTION _ }
   var           { Lexeme _ VAR _ }
   type          { Lexeme _ TYPE _ }
-  UNARYMINUS    { Lexeme _ UNARYMINUS _ }
+{-UNARYMINUS    { Lexeme _ UNARYMINUS _ }
   EXCEPTION     { Lexeme _ EXCEPTION _ }
   TRY           { Lexeme _ TRY _ }
   HANDLE        { Lexeme _ HANDLE _ }
   RAISE         { Lexeme _ RAISE _ }
+-}
 
 %nonassoc 'function' 'var' 'type' 'then' 'do' 'of' ':='
 %nonassoc 'else'
