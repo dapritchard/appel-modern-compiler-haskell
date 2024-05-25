@@ -29,6 +29,8 @@ library
     build-tool-depends:
         alex:alex ^>=3.5
       , happy:happy == 1.20.1.1
+    default-extensions:
+        StrictData
 
 test-suite test-lexical-analysis
     default-language: GHC2021
@@ -42,3 +44,5 @@ test-suite test-lexical-analysis
       , tasty ^>= 1.4.2
       , tasty-hunit ^>= 0.10.0
       , text >= 2
+    default-extensions:
+        StrictData

@@ -6,6 +6,7 @@
 --
 
 {
+{-# LANGUAGE NoStrictData #-}
 {-# OPTIONS -w -funbox-strict-fields #-}
 module TigerLexer ( main
                   , scanner
