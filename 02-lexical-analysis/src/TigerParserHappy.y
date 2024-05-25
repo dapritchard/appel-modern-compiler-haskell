@@ -1,11 +1,10 @@
 {
 -- Adapted from https://github.com/DarinM223/tiger2/blob/master/src/Tiger/Grammar.y
-module Tiger.Grammar where
+module TigerParserHappy where
 
-import Tiger.AST
-import Tiger.Parser
-import Tiger.Symbol
-import Tiger.Tokens
+import AST
+import Symbol
+import TigerLexer hiding (Pos)
 
 }
 
@@ -82,7 +81,7 @@ Exp :: {Exp}
   | for Id ':=' Exp to Exp do Exp %prec 'do' { ForExp (tokenToPos $1) $2 $4 $6 $8 False }
   | while Exp do Exp %prec 'do'              { WhileExp (tokenToPos $1) $2 $4 }
   | if Exp then Exp else Exp %prec 'else'    { IfExp (tokenToPos $1) $2 $4 (Just $6) }
-  | if Exp then Exp %prec 'do'               { IfExp (tokenToPos $1) $2 $4 Nothing }
+  | if Exp then Exp %shift                   { IfExp (tokenToPos $1) $2 $4 Nothing }
   | Var ':=' Exp                             { AssignExp (tokenToPos $2) $1 $3 }
   | Id '[' Exp ']' of Exp %prec 'do'         { ArrayExp (tokenToPos $2) $1 $3 $6 }
   | Id '{' RecordFields '}'                  { RecordExp (tokenToPos $2) $1 (reverse $3) }
@@ -110,11 +109,13 @@ RecordFields :: {[(Pos, Symbol, Exp)]}
   | Id '=' Exp                  { [(tokenToPos $2, $1, $3)] }
   | RecordFields ',' Id '=' Exp { ((tokenToPos $2), $3, $5) : $1 }
 
+{- For function application parameter inputs ('Function call'), page 517 -}
 Exps :: {[Exp]}
   : {- empty -}  { [] }
   | Exp          { [$1] }
   | Exps ',' Exp { $3 : $1 }
 
+{- For 'Sequencing', page 516 -}
 SeqExps :: {[Exp]}
   : {- empty -}     { [] }
   | Exp             { [$1] }
@@ -125,6 +126,12 @@ Decs :: {[Dec]}
   | Decs Dec    { $2 : $1 }
 
 Dec :: {Dec}
+  : TyDec  { TyDec $1 }
+  | VarDec  { VarDec $1 }
+  | FunDec { FunDec $1 }
+
+{-
+Dec :: {Dec}
   : TyDecs  { TyDecs (reverse $1) }
   | VarDec  { VarDec $1 }
   | FunDecs { FunDecs (reverse $1) }
@@ -132,6 +139,7 @@ Dec :: {Dec}
 TyDecs :: {[TyDec Bool]}
   : TyDec        { [$1] }
   | TyDecs TyDec { $2 : $1 }
+-}
 
 TyDec :: {TyDec Bool}
   : type Id '=' Ty { TyDec (tokenToPos $1) $2 $4 }
@@ -140,9 +148,11 @@ VarDec :: {VarDec' Bool}
   : var Id ':' Id ':=' Exp { VarDec' (tokenToPos $1) $2 (Just $4) $6 False }
   | var Id ':=' Exp        { VarDec' (tokenToPos $1) $2 Nothing $4 False }
 
+{-
 FunDecs :: {[FunDec Bool]}
   : FunDec         { [$1] }
   | FunDecs FunDec { $2 : $1 }
+-}
 
 FunDec :: {FunDec Bool}
   : function Id '(' Tyfields ')' ':' Id '=' Exp { FunDec (tokenToPos $1) $2 (reverse $4) (Just $7) $9 }
@@ -169,11 +179,16 @@ VarTail :: {Var}
   | VarTail '[' Exp ']' { ArraySub (tokenToPos $2) $1 $3 }
 
 Id :: {Symbol}
-  : ID {% symbol $1 }
+  {- FIXME -}
+  : ID {Symbol ($1 0) }
 
 {
-parseError :: [Token] -> a
-parseError (Token p t:_) =
+-- Could also use `tokPosn`
+tokenToPos :: Lexeme -> AlexPosn
+tokenToPos (Lexeme p _ _) = p
+
+parseError :: [Lexeme] -> a
+parseError (Lexeme p _ t : _) =
   error $ "Parse error at position: " ++ show p ++ " with token: " ++ show t
 parseError _ = error "Parse error"
 }

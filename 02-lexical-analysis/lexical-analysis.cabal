@@ -3,19 +3,21 @@ name:               lexical-analysis
 version:            0.1.0.0
 extra-source-files:
     src/TigerLexer.x
+    src/TigerParserHappy.y
     test/testcases/test1.tig
 
 library
     default-language: GHC2021
     default-extensions: OverloadedStrings
     exposed-modules:
+        AST
         TigerLexer
         TigerLexerToo
+        TigerParserHappy
+        Symbol
     autogen-modules:
         TigerLexer
-    extra-source-files:
-        TigerLexer.x
-      , TigerParserHappy.y
+      , TigerParserHappy
     build-depends:
         base ^>= 4.17
       , containers ^>=0.6.5
