@@ -1,4 +1,4 @@
-module Main (main) where
+module TestLexicalAnalysis (main) where
 
 import           TigerLexer              hiding ( main )
 import           TigerLexerToo              qualified as Tiger2
