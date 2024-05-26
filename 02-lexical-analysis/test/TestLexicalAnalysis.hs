@@ -1,4 +1,4 @@
-module TestLexicalAnalysis (main) where
+module TestLexicalAnalysis (lexerAlexTests) where
 
 import           TigerLexer              hiding ( main )
 import           TigerLexerToo              qualified as Tiger2
@@ -17,12 +17,8 @@ import Data.Text qualified as Text
 import System.Directory (listDirectory, withCurrentDirectory)
 import Data.List (sort)
 
--- Test the lexing of the test1.tig file
-main :: IO ()
-main = defaultMain tests
-
-tests :: TestTree
-tests = testGroup "Lexer tests" [testsTiger]
+lexerAlexTests :: TestTree
+lexerAlexTests = testGroup "Lexer tests" [testsTiger]
   -- TODO: Tiger2 parser still needs work
   -- [ testsTiger, testsTigerToo, testsCompare ]
 
