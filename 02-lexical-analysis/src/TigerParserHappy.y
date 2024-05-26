@@ -100,7 +100,7 @@ Exp :: {Exp}
   | Exp '+' Exp                              { OpExp (tokenToPos $2) AddOp $1 $3 }
   | Exp '*' Exp                              { OpExp (tokenToPos $2) MulOp $1 $3 }
   | Exp '/' Exp                              { OpExp (tokenToPos $2) DivOp $1 $3 }
-  | '-' Exp %prec NEG                        { OpExp (tokenToPos $1) SubOp (IntExp 0) $2 }
+  | '-' Exp %prec NEG                        { OpExp (tokenToPos $1) SubOp zeroExp $2 }
   | INT                                      { IntExp $1 }
   | STRING                                   { StringExp $1 }
 
@@ -125,24 +125,31 @@ Decs :: {[Dec]}
   : {- empty -} { [] }
   | Decs Dec    { $2 : $1 }
 
+{-
+Dec :: {Dec}
+  : TyDecs  { TyDecs (reverse $1) }
+  | VarDec  { VarDec $1 }
+  | FunDecs { FunDecs (reverse $1) }
+-}
+
 Dec :: {Dec}
   : TyDec  { TyDec $1 }
   | VarDec  { VarDec $1 }
   | FunDec { FunDec $1 }
 
 {-
-Dec :: {Dec}
-  : TyDecs  { TyDecs (reverse $1) }
-  | VarDec  { VarDec $1 }
-  | FunDecs { FunDecs (reverse $1) }
-
 TyDecs :: {[TyDec Bool]}
   : TyDec        { [$1] }
   | TyDecs TyDec { $2 : $1 }
 -}
 
+{-
 TyDec :: {TyDec Bool}
   : type Id '=' Ty { TyDec (tokenToPos $1) $2 $4 }
+-}
+
+TyDec :: {TyDec' Bool}
+  : type Id '=' Ty { TyDec' (tokenToPos $1) $2 $4 }
 
 VarDec :: {VarDec' Bool}
   : var Id ':' Id ':=' Exp { VarDec' (tokenToPos $1) $2 (Just $4) $6 False }
@@ -154,9 +161,15 @@ FunDecs :: {[FunDec Bool]}
   | FunDecs FunDec { $2 : $1 }
 -}
 
+{-
 FunDec :: {FunDec Bool}
   : function Id '(' Tyfields ')' ':' Id '=' Exp { FunDec (tokenToPos $1) $2 (reverse $4) (Just $7) $9 }
   | function Id '(' Tyfields ')' '=' Exp        { FunDec (tokenToPos $1) $2 (reverse $4) Nothing $7 }
+-}
+
+FunDec :: {FunDec' Bool}
+  : function Id '(' Tyfields ')' ':' Id '=' Exp { FunDec' (tokenToPos $1) $2 (reverse $4) (Just $7) $9 }
+  | function Id '(' Tyfields ')' '=' Exp        { FunDec' (tokenToPos $1) $2 (reverse $4) Nothing $7 }
 
 Ty :: {Ty}
   : Id               { IdTy $1 }
@@ -180,15 +193,25 @@ VarTail :: {Var}
 
 Id :: {Symbol}
   {- FIXME -}
-  : ID {Symbol ($1 0) }
+  : ID { Symbol (tokenToString $1, 0) }
 
 {
--- Could also use `tokPosn`
+-- TODO: Could also use `tokPosn`
 tokenToPos :: Lexeme -> AlexPosn
 tokenToPos (Lexeme p _ _) = p
+
+tokenToString :: Lexeme -> String
+tokenToString (Lexeme _ _ Nothing) = ""
+tokenToString (Lexeme _ _ (Just x)) = x
 
 parseError :: [Lexeme] -> a
 parseError (Lexeme p _ t : _) =
   error $ "Parse error at position: " ++ show p ++ " with token: " ++ show t
 parseError _ = error "Parse error"
+
+zeroExp :: Exp' Bool
+zeroExp = IntExp zeroLexeme
+
+zeroLexeme :: Lexeme
+zeroLexeme = Lexeme (AlexPn 0 0 0) (INT 0) Nothing
 }
