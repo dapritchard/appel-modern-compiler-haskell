@@ -3,6 +3,7 @@
 module TigerParserHappy where
 
 import AST
+import Parser
 import Symbol
 import TigerLexer hiding (Pos)
 
@@ -11,6 +12,7 @@ import TigerLexer hiding (Pos)
 %name parse
 %tokentype { Lexeme }
 %error { parseError }
+%monad { Parser }
 
 %token
   ID            { Lexeme _ (ID _) _ }
@@ -62,7 +64,9 @@ import TigerLexer hiding (Pos)
   HANDLE        { Lexeme _ HANDLE _ }
   RAISE         { Lexeme _ RAISE _ }
 -}
+{-
   eof           { Lexeme _ EOF _ }
+-}
 
 %nonassoc 'function' 'var' 'type' 'then' 'do' 'of' ':='
 %nonassoc 'else'
@@ -75,8 +79,10 @@ import TigerLexer hiding (Pos)
 
 %%
 
+{-
 Program :: {Exp}
   : Exp eof                                  { $1 }
+-}
 
 Exp :: {Exp}
   : let Decs in SeqExps end                  { LetExp (tokenToPos $1) (reverse $2) (SeqExp (tokenToPos $1) (reverse $4)) }
