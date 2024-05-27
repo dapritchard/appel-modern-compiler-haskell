@@ -11,8 +11,9 @@ import TigerLexer hiding (Pos)
 
 %name parse
 %tokentype { Lexeme }
+%monad { Alex }
+%lexer { lexer } {  Lexeme _ EOF _ }
 %error { parseError }
-%monad { Parser }
 
 %token
   ID            { Lexeme _ (ID _) _ }
@@ -214,10 +215,16 @@ tokenToString :: Lexeme -> String
 tokenToString (Lexeme _ _ Nothing) = ""
 tokenToString (Lexeme _ _ (Just x)) = x
 
+{-
 parseError :: [Lexeme] -> a
 parseError (Lexeme p _ t : _) =
   error $ "Parse error at position: " ++ show p ++ " with token: " ++ show t
 parseError _ = error "Parse error"
+-}
+
+parseError :: Lexeme -> a
+parseError (Lexeme p _ t) =
+  error $ "Parse error at position: " ++ show p ++ " with token: " ++ show t
 
 zeroExp :: Exp' Bool
 zeroExp = IntExp zeroLexeme
