@@ -3,7 +3,6 @@
 module TigerParserHappy where
 
 import AST
-import Parser
 import Symbol
 import TigerLexer hiding (Pos)
 
@@ -231,4 +230,9 @@ zeroExp = IntExp zeroLexeme
 
 zeroLexeme :: Lexeme
 zeroLexeme = Lexeme (AlexPn 0 0 0) (INT 0) Nothing
+
+{-
+parseExp :: FilePath -> String -> Either String Exp
+parseExp = runAlex parse
+-}
 }
