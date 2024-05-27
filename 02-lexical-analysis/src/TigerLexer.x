@@ -298,7 +298,7 @@ alexInitUserState = AlexUserState
                      , lexerStringState   = Nothing
                      , lexerStringValue   = ""
                      , parserCollIdent    = Map.empty
-                     , parserCurrentToken = Lexeme undefined EOF Nothing
+                     , parserCurrentToken = Lexeme (AlexPn 0 0 0) EOF Nothing
                      , parserPos          = Nothing
                    }
 
@@ -355,7 +355,7 @@ line_number (Just (AlexPn _ lig col)) = (lig, col)
 -- definition needed by Alex
 
 alexEOF :: Alex Lexeme
-alexEOF = return (Lexeme undefined EOF Nothing)
+alexEOF = return (Lexeme (AlexPn 0 0 0) EOF Nothing)
 
 -- Execution
 
