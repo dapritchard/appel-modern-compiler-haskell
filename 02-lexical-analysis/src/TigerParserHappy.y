@@ -62,6 +62,7 @@ import TigerLexer hiding (Pos)
   HANDLE        { Lexeme _ HANDLE _ }
   RAISE         { Lexeme _ RAISE _ }
 -}
+  eof           { Lexeme _ EOF _ }
 
 %nonassoc 'function' 'var' 'type' 'then' 'do' 'of' ':='
 %nonassoc 'else'
@@ -73,6 +74,9 @@ import TigerLexer hiding (Pos)
 %left NEG
 
 %%
+
+Program :: {Exp}
+  : Exp eof                                  { $1 }
 
 Exp :: {Exp}
   : let Decs in SeqExps end                  { LetExp (tokenToPos $1) (reverse $2) (SeqExp (tokenToPos $1) (reverse $4)) }

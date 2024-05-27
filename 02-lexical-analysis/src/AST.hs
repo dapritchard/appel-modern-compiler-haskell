@@ -80,5 +80,5 @@ data Op = AddOp | SubOp | MulOp | DivOp
         | AndOp | OrOp
         deriving (Show, Eq)
 
--- newtype Symbol2 = Symbol2 Lexeme
---   deriving (Eq, Show)
+newtype Program = Program Exp
+  deriving (Show, Eq)
