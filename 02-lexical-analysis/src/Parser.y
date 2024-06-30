@@ -28,10 +28,10 @@ import TigerLexer hiding (Pos)
   ';'           { Lexeme _ SEMICOLON _ }
   '('           { Lexeme _ LPAREN _ }
   ')'           { Lexeme _ RPAREN _ }
-  '{'           { Lexeme _ LBRACK _ }
-  '}'           { Lexeme _ RBRACK _ }
-  '['           { Lexeme _ LBRACE _ }
-  ']'           { Lexeme _ RBRACE _ }
+  '{'           { Lexeme _ LBRACE _ }
+  '}'           { Lexeme _ RBRACE _ }
+  '['           { Lexeme _ LBRACK _ }
+  ']'           { Lexeme _ RBRACK _ }
   '.'           { Lexeme _ DOT _ }
   '+'           { Lexeme _ PLUS _ }
   '-'           { Lexeme _ MINUS _ }
