@@ -190,8 +190,8 @@ tokenToString (Lexeme _ _ (Just x)) = x
 -- lexwrap = (alexMonadScan' >>=)
 
 parseError :: Lexeme -> a
-parseError (Lexeme p _ t) =
-  error $ "Parse error at position: " ++ show p ++ " with token: " ++ show t
+parseError (Lexeme p c t) =
+  error $ "Parse error at position: " ++ show p ++ " with class '" ++ show c ++ "' and token: " ++ show t
 
 -- parseExp :: FilePath -> String -> Either String Exp
 -- parseExp = runAlex' parse
