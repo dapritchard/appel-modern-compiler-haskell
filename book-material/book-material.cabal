@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               introduction
+name:               book-material
 version:            0.1.0.0
 
 library
@@ -24,7 +24,7 @@ test-suite test-introduction
     main-is:          TestIntroduction.hs
     build-depends:
         base ^>= 4.17
-      , introduction
+      , book-material
       , tasty ^>= 1.4.2
       , tasty-hunit ^>= 0.10.0
 

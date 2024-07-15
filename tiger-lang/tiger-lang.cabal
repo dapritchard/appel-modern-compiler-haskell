@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               lexical-analysis
+name:               tiger-lang
 version:            0.1.0.0
 extra-source-files:
     src/TigerLexer.x
@@ -39,7 +39,7 @@ test-suite test-lexical-analysis
     build-depends:
         base ^>= 4.17
       , directory
-      , lexical-analysis
+      , tiger-lang
       , tasty ^>= 1.4.2
       , tasty-hunit ^>= 0.10.0
       , text >= 2
