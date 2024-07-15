@@ -33,9 +33,10 @@ test-suite test-lexical-analysis
     default-language: GHC2021
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
-    main-is:          TestLexicalAnalysis.hs
+    main-is:          Main.hs
     other-modules:
         TestTigerParserHappy
+        TestLexicalAnalysis
     build-depends:
         base ^>= 4.17
       , directory

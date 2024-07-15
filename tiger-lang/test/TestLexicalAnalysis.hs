@@ -1,4 +1,4 @@
-module Main (main) where
+module TestLexicalAnalysis (tests) where
 
 import           TigerLexer              hiding ( main )
 import           TigerLexerToo              qualified as Tiger2
@@ -16,10 +16,6 @@ import           Test.Tasty.HUnit               ( (@=?)
 import Data.Text qualified as Text
 import System.Directory (listDirectory, withCurrentDirectory)
 import Data.List (sort)
-
--- Test the lexing of the test1.tig file
-main :: IO ()
-main = defaultMain tests
 
 tests :: TestTree
 tests = testGroup "Lexer tests" [testsTiger]
