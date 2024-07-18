@@ -11,9 +11,10 @@ import GHC.Generics (Generic)
 -- import qualified Data.HashTable.IO as H
 
 newtype Symbol = Symbol (String, Int)
-  deriving Generic
-instance Show Symbol where
-  show (Symbol (s, _)) = s
+  deriving (Generic, Show)
+-- TODO: Full symbol shown for testing purposes
+-- instance Show Symbol where
+--   show (Symbol (s, _)) = s
 instance Eq Symbol where
   Symbol (_, s1) == Symbol (_, s2) = s1 == s2
 instance Ord Symbol where

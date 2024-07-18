@@ -22,14 +22,17 @@ import Symbol
 tests :: TestTree
 tests = testGroup "tests for parser built using Happy"
                              [ testBasicLetTig
-                             -- , testTest1Tig
+                             , testTest1Tig
                              ]
+
+
+{- TEST CASES -}
 
 testDirLoc :: String
 testDirLoc = "./test/testcases/"
 
-basicLetTig :: String
-basicLetTig = "basic-let.tig"
+basicLetTig :: FilePath
+basicLetTig = testDirLoc ++ "basic-let.tig"
 
 testBasicLetTig :: TestTree
 testBasicLetTig =
@@ -39,38 +42,70 @@ testBasicLetTig =
 
 assertBasicLetTig :: Assertion
 assertBasicLetTig = do
-  fileContents <- readFile (testDirLoc ++ basicLetTig)
-  let 
-    actual = lexAndParse fileContents
-    -- NOTE: undefined will not be evaluated
-    --  see compareExp
-    expectedVarVal = IntExp $ Lexeme undefined (INT 5) undefined
-    expectedVar = VarDec' undefined undefined undefined expectedVarVal undefined
-    expectedInExp = SeqExp undefined [VarExp (Var $ Symbol ("x", 0))]
-    expected = Right $ LetExp undefined [VarDec expectedVar] expectedInExp
+  actual <- lexAndParse <$> readFile basicLetTig
+  let
+    -- TODO: Symbol ids are as expected? If so creates a problem for the equality
+    -- instance of Symbol.
+    expectedVarVal = IntExp $ mkTestableLexeme (INT 5)
+    expectedVar = mkTestableVarDec' (Symbol ("x", 0)) (Just $ Symbol ("int", 0)) expectedVarVal
+    expectedInExp = mkTestableSeqExp [VarExp (Var $ Symbol ("x", 0))]
+    expected = Right $ mkTestableLetExp [VarDec expectedVar] expectedInExp
 
   compareTig actual expected
+
+test1Tig :: FilePath
+test1Tig = testDirLoc ++ "test1.tig"
 
 testTest1Tig :: TestTree
 testTest1Tig = do
   testCase
-    "test1.tig"
+    test1Tig
     assertTest1Tig
 
 assertTest1Tig :: Assertion
 assertTest1Tig = do
-  fileContents <- readFile (testDirLoc ++ "test1.tig")
-  let actual = lexAndParse fileContents
-      -- This isn't expected to be the correct value of @ast@, it's just trying to
-      -- provoke the exception that is occuring
-      expected = Right $ NilExp (AlexPn 0 0 0) :: Either String Exp
-  actual @=? expected
+  actual <- lexAndParse <$> readFile test1Tig
+  let
+    arrtype = Symbol ("arrtype", 0)
+    expectedArrayOfTy = ArrayOfTy undefined (Symbol ("int", 0))
+    expectedTyDec = mkTestableTyDec' arrtype expectedArrayOfTy
+    expectedVarArrLenVal = IntExp $ mkTestableLexeme (INT 10)
+    expectedVarArrVal = IntExp $ mkTestableLexeme (INT 0)
+    expectedVarVal = ArrayExp undefined arrtype expectedVarArrLenVal expectedVarArrVal
+    expectedVar = mkTestableVarDec' (Symbol ("arr1", 0)) (Just arrtype) expectedVarVal
+    expectedInExp = mkTestableSeqExp [VarExp (Var $ Symbol ("arr1", 0))]
+    expected = Right $ mkTestableLetExp [TyDec expectedTyDec, VarDec expectedVar] expectedInExp
+  
+  compareTig actual expected
 
 {- UTILS -}
 
 lexAndParse :: String -> Either String Exp
 lexAndParse fileContents =
   runAlex fileContents parse
+
+-- | Constructor filling in only the tested elements of `LetExp`.
+-- See 'compareExp'.
+mkTestableLetExp :: [Dec] -> Exp -> Exp
+mkTestableLetExp decs inExp = LetExp undefined decs inExp
+
+mkTestableSeqExp :: [Exp] -> Exp
+mkTestableSeqExp exps = SeqExp undefined exps
+
+mkTestableVarDec' :: Symbol -> Maybe Symbol -> Exp -> VarDec'
+mkTestableVarDec' nm ty val = 
+  VarDec' { varDecPos = undefined,
+            varDecName = nm,
+            varDecTy = ty,
+            varDecInit = val,
+            varDecEscapes = undefined
+  }
+
+mkTestableTyDec' :: Symbol -> Ty -> TyDec'
+mkTestableTyDec' nm ty = TyDec' undefined nm ty
+
+mkTestableLexeme :: LexemeClass -> Lexeme
+mkTestableLexeme cl = Lexeme undefined cl undefined
 
 -- TODO: expand this as we add test cases.
 
@@ -89,13 +124,33 @@ compareExp (LetExp _ decs exp) (LetExp _ decs' exp') = do
 compareExp (VarExp var) (VarExp var') = var @=? var'
 compareExp (IntExp lexeme) (IntExp lexeme') = compareLexeme lexeme lexeme'
 compareExp (SeqExp _ exps) (SeqExp _ exps') = mapM_ (uncurry compareExp) $ zip exps exps'
+compareExp (ArrayExp _ ty lenExp valExp) (ArrayExp _ ty' lenExp' valExp') = do
+  ty @=? ty'
+  compareExp lenExp lenExp'
+  compareExp valExp valExp'
 
+-- | Compare Dec, with argument order actual expected
 compareDec :: Dec -> Dec -> Assertion
-compareDec (VarDec dec) (VarDec dec') = compareExp exp exp'
+compareDec (VarDec dec) (VarDec dec') = do
+  nm @=? nm'
+  ty @=? ty'
+  compareExp exp exp'
   where 
-    exp = varDecInit dec
-    exp' = varDecInit dec'
-compareDec _ _ = assertFailure "Unsupported Dec variant"
+    (VarDec' _ nm ty exp _ ) = dec
+    (VarDec'  _ nm' ty' exp' _ ) = dec'
+compareDec (TyDec dec) (TyDec dec') = do 
+  nm @=? nm'
+  compareTy ty ty'
+  where
+    (TyDec' _ nm ty) = dec
+    (TyDec' _ nm' ty') = dec'
+compareDec (FunDec _) _ = assertFailure "Unsupported Dec variant: FunDec"
+compareDec _ _ = assertFailure "Mismatched Dec variants"
+
+-- | Compare Ty, with order actual expected
+compareTy :: Ty -> Ty -> Assertion
+compareTy (IdTy ty) (IdTy ty') = ty @=? ty'
+compareTy (ArrayOfTy _ ty) (ArrayOfTy _ ty') = ty @=? ty'
 
 -- | Compare on LexemeClass.
 compareLexeme :: Lexeme -> Lexeme -> Assertion
