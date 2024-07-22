@@ -16,7 +16,6 @@ data Exp
   = VarExp Var
   | NilExp Pos
   | SeqExp Pos [Exp]
-  -- | IntExp Int
   | IntExp Lexeme
   | StringExp Lexeme
   | OpExp Pos Op Exp Exp
@@ -29,12 +28,22 @@ data Exp
   | ForExp Pos Symbol Exp Exp Exp Bool
   | BreakExp Pos
   | LetExp Pos [Dec] Exp
-      deriving (Eq, Show)
+  deriving (Eq, Show)
 
-data Op = AddOp | SubOp | MulOp | DivOp
-        | EqOp | NeqOp | GtOp | LtOp | GteOp | LteOp
-        | AndOp | OrOp
-        deriving (Show, Eq)
+data Op
+  = AddOp
+  | SubOp
+  | MulOp
+  | DivOp
+  | EqOp
+  | NeqOp
+  | GtOp
+  | LtOp
+  | GteOp
+  | LteOp
+  | AndOp
+  | OrOp
+  deriving (Show, Eq)
 
 data Var
   = Var Symbol
@@ -49,10 +58,11 @@ data Dec
   deriving (Show, Eq)
 
 data TyDec' = TyDec'
-  { typeDecPos  :: Pos
+  { typeDecPos :: Pos
   , typeDecName :: Symbol
-  , typeDecTy   :: Ty
-  } deriving (Show, Eq)
+  , typeDecTy :: Ty
+  }
+  deriving (Show, Eq)
 
 data TyField = TyField Pos Symbol Symbol Bool
   deriving (Show, Eq)
@@ -64,20 +74,22 @@ data Ty
   deriving (Show, Eq)
 
 data VarDec' = VarDec'
-  { varDecPos     :: Pos
-  , varDecName    :: Symbol
-  , varDecTy      :: Maybe Symbol
-  , varDecInit    :: Exp
+  { varDecPos :: Pos
+  , varDecName :: Symbol
+  , varDecTy :: Maybe Symbol
+  , varDecInit :: Exp
   , varDecEscapes :: Bool
-  } deriving (Show, Eq)
+  }
+  deriving (Show, Eq)
 
 data FunDec' = FunDec'
-  { funDecPos    :: Pos
-  , funDecName   :: Symbol
+  { funDecPos :: Pos
+  , funDecName :: Symbol
   , funDecParams :: [TyField]
   , funDecResult :: Maybe Symbol
-  , funDecBody   :: Exp
-  } deriving (Show, Eq)
+  , funDecBody :: Exp
+  }
+  deriving (Show, Eq)
 
 -- data Exp'
 --   = IntExp Lexeme

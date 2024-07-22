@@ -31,6 +31,8 @@ tests = testGroup "tests for parser built using Happy"
 testDirLoc :: String
 testDirLoc = "./test/testcases/"
 
+{- Parsing correctness -}
+
 basicLetTig :: FilePath
 basicLetTig = testDirLoc ++ "basic-let.tig"
 
@@ -44,14 +46,12 @@ assertBasicLetTig :: Assertion
 assertBasicLetTig = do
   actual <- lexAndParse <$> readFile basicLetTig
   let
-    -- TODO: Symbol ids are as expected? If so creates a problem for the equality
-    -- instance of Symbol.
     expectedVarVal = IntExp $ mkTestableLexeme (INT 5)
-    expectedVar = mkTestableVarDec' (Symbol ("x", 0)) (Just $ Symbol ("int", 0)) expectedVarVal
-    expectedInExp = mkTestableSeqExp [VarExp (Var $ Symbol ("x", 0))]
+    expectedVar = mkTestableVarDec' (Symbol "x" 0) (Just $ Symbol "int" 1) expectedVarVal
+    expectedInExp = mkTestableSeqExp [VarExp (Var $ Symbol "x" 0)]
     expected = Right $ mkTestableLetExp [VarDec expectedVar] expectedInExp
 
-  compareTig actual expected
+  compareTig expected actual
 
 test1Tig :: FilePath
 test1Tig = testDirLoc ++ "test1.tig"
@@ -66,17 +66,17 @@ assertTest1Tig :: Assertion
 assertTest1Tig = do
   actual <- lexAndParse <$> readFile test1Tig
   let
-    arrtype = Symbol ("arrtype", 0)
-    expectedArrayOfTy = ArrayOfTy undefined (Symbol ("int", 0))
+    arrtype = Symbol "arrtype" 0
+    expectedArrayOfTy = ArrayOfTy undefined (Symbol "int" 1)
     expectedTyDec = mkTestableTyDec' arrtype expectedArrayOfTy
     expectedVarArrLenVal = IntExp $ mkTestableLexeme (INT 10)
     expectedVarArrVal = IntExp $ mkTestableLexeme (INT 0)
     expectedVarVal = ArrayExp undefined arrtype expectedVarArrLenVal expectedVarArrVal
-    expectedVar = mkTestableVarDec' (Symbol ("arr1", 0)) (Just arrtype) expectedVarVal
-    expectedInExp = mkTestableSeqExp [VarExp (Var $ Symbol ("arr1", 0))]
+    expectedVar = mkTestableVarDec' (Symbol "arr1" 2) (Just arrtype) expectedVarVal
+    expectedInExp = mkTestableSeqExp [VarExp (Var $ Symbol "arr1" 2)]
     expected = Right $ mkTestableLetExp [TyDec expectedTyDec, VarDec expectedVar] expectedInExp
-  
-  compareTig actual expected
+
+  compareTig expected actual
 
 {- UTILS -}
 
@@ -116,7 +116,7 @@ compareTig actual expected = actual @=? expected
 
 -- |  Modified version of @=? that compares
 -- only on elements we care about for these tests.
--- Arguments are in order of actual expected.
+-- Arguments are in order of expected actual.
 compareExp :: Exp -> Exp -> Assertion
 compareExp (LetExp _ decs exp) (LetExp _ decs' exp') = do
   mapM_ (uncurry compareDec) $ zip decs decs'
@@ -129,7 +129,7 @@ compareExp (ArrayExp _ ty lenExp valExp) (ArrayExp _ ty' lenExp' valExp') = do
   compareExp lenExp lenExp'
   compareExp valExp valExp'
 
--- | Compare Dec, with argument order actual expected
+-- | Compare Dec, with argument order expected actual
 compareDec :: Dec -> Dec -> Assertion
 compareDec (VarDec dec) (VarDec dec') = do
   nm @=? nm'
@@ -147,7 +147,7 @@ compareDec (TyDec dec) (TyDec dec') = do
 compareDec (FunDec _) _ = assertFailure "Unsupported Dec variant: FunDec"
 compareDec _ _ = assertFailure "Mismatched Dec variants"
 
--- | Compare Ty, with order actual expected
+-- | Compare Ty, with order expected actual
 compareTy :: Ty -> Ty -> Assertion
 compareTy (IdTy ty) (IdTy ty') = ty @=? ty'
 compareTy (ArrayOfTy _ ty) (ArrayOfTy _ ty') = ty @=? ty'

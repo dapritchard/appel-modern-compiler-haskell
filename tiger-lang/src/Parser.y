@@ -175,9 +175,10 @@ VarTail :: {Var}
 
 Id :: {Symbol}
   {- FIXME -}
-  : ID { Symbol (tokenToString $1, 0) }
+  : ID { % tokenToSymbol $1 }
 
 {
+
 -- TODO: Could also use `tokPosn`
 tokenToPos :: Lexeme -> AlexPosn
 tokenToPos (Lexeme p _ _) = p
