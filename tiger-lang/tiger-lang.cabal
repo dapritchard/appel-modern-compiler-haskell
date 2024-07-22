@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               lexical-analysis
+name:               tiger-lang
 version:            0.1.0.0
 extra-source-files:
     src/TigerLexer.x
@@ -9,9 +9,12 @@ library
     default-language: GHC2021
     default-extensions: OverloadedStrings
     exposed-modules:
+        Language
+        Parser
+        Symbol
         TigerLexer
-        TigerLexerToo
     autogen-modules:
+        Parser
         TigerLexer
     build-depends:
         base ^>= 4.17
@@ -21,17 +24,22 @@ library
       , text >= 2 
       , megaparsec
     hs-source-dirs:   src
-    build-tool-depends: alex:alex ^>=3.5
+    build-tool-depends:
+        alex:alex ^>=3.5
+      , happy:happy
 
 test-suite test-lexical-analysis
     default-language: GHC2021
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
-    main-is:          TestLexicalAnalysis.hs
+    main-is:          Main.hs
+    other-modules:
+        TestTigerParserHappy
+        TestLexicalAnalysis
     build-depends:
         base ^>= 4.17
       , directory
-      , lexical-analysis
+      , tiger-lang
       , tasty ^>= 1.4.2
       , tasty-hunit ^>= 0.10.0
       , text >= 2

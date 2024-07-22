@@ -1,13 +1,13 @@
 cradle:
   cabal:
-    - path: "01-introduction/src"
-      component: "lib:introduction"
+    - path: "book-material/src"
+      component: "lib:book-material"
 
-    - path: "01-introduction/test"
-      component: "introduction:test:test-introduction"
+    - path: "book-material/test"
+      component: "book-material:test:test-introduction"
 
-    - path: "02-lexical-analysis/src"
-      component: "lib:lexical-analysis"
+    - path: "tiger-lang/src"
+      component: "lib:tiger-lang"
 
-    - path: "02-lexical-analysis/test"
-      component: "lexical-analysis:test:test-lexical-analysis"
+    - path: "tiger-lang/test"
+      component: "tiger-lang:test:test-lexical-analysis"

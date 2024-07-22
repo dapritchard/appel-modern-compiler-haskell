@@ -14,6 +14,7 @@ module TigerLexer ( main
                   , getParserPos, setParserPos
                   , alexError, runAlex, runAlexTable, alexGetInput, showPosn
                   , line_number
+                  , tokenToSymbol
                   ) where
 
 import Prelude
@@ -25,7 +26,8 @@ import Data.Maybe
 import Numeric ( readDec )
 import Data.Char ( chr )
 import Data.Map ( Map )
-import qualified Data.Map as Map ( empty )
+import qualified Data.Map as Map
+import Symbol
 }
 
 %wrapper "monadUserState"
@@ -286,6 +288,8 @@ data AlexUserState = AlexUserState
                      , lexerStringValue   :: String
                      -- used by the parser phase
                      , parserCollIdent    :: Map String Int
+                     -- Next Id to be used in a symbol
+                     , parserNextSym      :: Int
                      , parserCurrentToken :: Lexeme
                      , parserPos          :: Pos
                    }
@@ -297,6 +301,7 @@ alexInitUserState = AlexUserState
                      , lexerStringState   = Nothing
                      , lexerStringValue   = ""
                      , parserCollIdent    = Map.empty
+                     , parserNextSym      = 0
                      , parserCurrentToken = Lexeme undefined EOF Nothing
                      , parserPos          = Nothing
                    }
@@ -433,6 +438,41 @@ runAlexTable input (Alex f)
             Left msg      -> Left msg
             Right (st, a) -> Right (a, parserCollIdent (alex_ust st))
 
+
+-- Get the Symbol from a String, maintaining
+-- the invariant that each name must have a unique id.
+tokenToSymbol :: Lexeme -> Alex Symbol
+tokenToSymbol (Lexeme _ _ Nothing) = getOrInsert ""
+tokenToSymbol (Lexeme _ _ (Just x)) = getOrInsert x
+
+-- | Pure updates to AlexUserState. Replaces the map and the counter.
+updateTableNextSym :: AlexUserState -> Map String Int -> Int -> AlexUserState
+updateTableNextSym st newCollId newNextSym = 
+  st{ parserCollIdent = newCollId, parserNextSym = newNextSym }
+
+getOrInsert :: String -> Alex Symbol
+getOrInsert nm = do
+  uState <- alexGetUserState
+  let 
+    table = parserCollIdent uState
+    symId = parserNextSym uState
+    res = Map.lookup nm table
+
+  case res of
+    -- Doesn't yet exist. Update the state and return.
+    Nothing -> do
+      let 
+        newTable = Map.insert nm symId table
+        newNextSym = symId + 1
+        newState = updateTableNextSym uState newTable newNextSym
+
+      alexSetUserState newState
+
+      pure $ Symbol nm symId
+
+    -- Exists. Just return the name with id.
+    Just oldId -> pure $ Symbol nm oldId
+  
 
 data Flag
      =
